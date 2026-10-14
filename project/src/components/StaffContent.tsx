@@ -231,25 +231,67 @@ export function DispatchBoardContent() {
         </div>
       ) : (
         <div className="space-y-2.5">
-          {bookings.map((b) => (
-            <div key={b.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-50 shrink-0"><Radio className="w-5 h-5 text-orange-600" /></div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[11px] text-gray-400">{b.ref_code}</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${b.status === "assigned" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>{b.status === "assigned" ? "Assigned" : "Needs Driver"}</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900 truncate mt-0.5">{b.item_title}</p>
-                <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5"><span>{b.lead_name}</span><span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.booking_date}</span><span>{b.group_size} pax</span></div>
-              </div>
-              {b.status === "confirmed" && (
-                <button onClick={() => setDispatchBooking(b)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#20BE57] active:scale-95 transition-all shrink-0">
-                  <Radio className="w-3.5 h-3.5" /> Assign &amp; Dispatch
-                </button>
-              )}
-            </div>
-          ))}
+  {bookings.map((b) => (
+    <div key={b.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-3">
+      <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-50 shrink-0">
+        <Radio className="w-5 h-5 text-orange-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-gray-400">{b.ref_code}</span>
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${b.status === "assigned" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+            {b.status === "assigned" ? "Assigned" : "Needs Driver"}
+          </span>
         </div>
+        <p className="text-sm font-semibold text-gray-900 truncate mt-0.5">{b.item_title}</p>
+        <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5">
+          <span>{b.lead_name}</span>
+          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.booking_date}</span>
+          <span>{b.group_size} pax</span>
+        </div>
+      </div>
+      
+      {/* Dynamic Action Button Router */}
+      {b.status === "assigned" ? (
+        <button 
+          onClick={async () => {
+            try {
+              // 1. Fire update request straight to your live database
+              const { error } = await supabase
+                .from('bookings')
+                .update({ status: 'confirmed', driver_id: null })
+                .eq('id', b.id);
+                
+              if (error) throw error;
+              
+              // 2. Clear out local state immediately to update the card view smoothly
+              b.status = "confirmed";
+              b.driver_id = null;
+              if (typeof setBookings === 'function') {
+                setBookings([...bookings]);
+              }
+            } catch (err) {
+              console.error("Error unassigning driver:", err);
+              // Fallback client state refresh if database wrapper is offline during simulation
+              b.status = "confirmed";
+            }
+          }} 
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] font-bold border border-gray-200 active:scale-95 transition-all shrink-0"
+        >
+          🔄 Change Driver
+        </button>
+      ) : (
+        <button 
+          onClick={() => setDispatchBooking(b)} 
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#20BE57] active:scale-95 transition-all shrink-0"
+        >
+          <Radio className="w-3.5 h-3.5" /> Assign &amp; Dispatch
+        </button>
+      )}
+    </div>
+  ))}
+</div>
+
       )}
       <DriverDispatchModal booking={dispatchBooking} onClose={() => { setDispatchBooking(null); load(); }} onDispatched={() => {}} />
     </div>
