@@ -251,44 +251,90 @@ export function DispatchBoardContent() {
         </div>
       </div>
       
-      {/* Dynamic Action Button Router */}
-      {b.status === "assigned" ? (
+            {/* Full Admin & Dispatch Control Row */}
+      <div className="flex items-center gap-2 shrink-0 ml-auto">
+        {/* Edit Button */}
+        <button 
+          onClick={() => {
+            if (typeof setSelectedBookingForEdit === 'function') {
+              setSelectedBookingForEdit(b);
+            } else {
+              alert(`Editing Reservation: ${b.ref_code}`);
+            }
+          }}
+          className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors border border-gray-200"
+          title="Edit Reservation"
+        >
+          📝
+        </button>
+
+        {/* Delete Button */}
         <button 
           onClick={async () => {
-            try {
-              // 1. Fire update request straight to your live database
-              const { error } = await supabase
-                .from('bookings')
-                .update({ status: 'confirmed', driver_id: null })
-                .eq('id', b.id);
+            if (window.confirm(`⚠️ Are you sure you want to permanently delete reservation ${b.ref_code}? This action cannot be undone.`)) {
+              try {
+                const { error } = await supabase
+                  .from('bookings')
+                  .delete()
+                  .eq('id', b.id);
+                  
+                if (error) throw error;
                 
-              if (error) throw error;
-              
-              // 2. Clear out local state immediately to update the card view smoothly
-              b.status = "confirmed";
-              b.driver_id = null;
-              if (typeof setBookings === 'function') {
-                setBookings([...bookings]);
+                if (typeof setBookings === 'function') {
+                  setBookings(bookings.filter(item => item.id !== b.id));
+                } else {
+                  window.location.reload();
+                }
+              } catch (err) {
+                console.error("Error deleting reservation record:", err);
+                alert("Could not process delete request.");
               }
-            } catch (err) {
-              console.error("Error unassigning driver:", err);
-              // Fallback client state refresh if database wrapper is offline during simulation
-              b.status = "confirmed";
             }
-          }} 
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] font-bold border border-gray-200 active:scale-95 transition-all shrink-0"
+          }}
+          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors border border-red-100"
+          title="Delete Reservation"
         >
-          🔄 Change Driver
+          🗑️
         </button>
-      ) : (
-        <button 
-          onClick={() => setDispatchBooking(b)} 
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#20BE57] active:scale-95 transition-all shrink-0"
-        >
-          <Radio className="w-3.5 h-3.5" /> Assign &amp; Dispatch
-        </button>
-      )}
-    </div>
+
+        <div className="w-[1px] h-5 bg-gray-200 mx-1" />
+
+        {/* Dispatch Toggle Engine */}
+        {b.status === "assigned" ? (
+          <button 
+            onClick={async () => {
+              try {
+                const { error } = await supabase
+                  .from('bookings')
+                  .update({ status: 'confirmed', driver_id: null })
+                  .eq('id', b.id);
+                  
+                if (error) throw error;
+                
+                b.status = "confirmed";
+                b.driver_id = null;
+                if (typeof setBookings === 'function') {
+                  setBookings([...bookings]);
+                }
+              } catch (err) {
+                console.error("Error updating route status:", err);
+                b.status = "confirmed";
+              }
+            }} 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] font-bold border border-gray-200 active:scale-95 transition-all"
+          >
+            🔄 Change Driver
+          </button>
+        ) : (
+          <button 
+            onClick={() => setDispatchBooking(b)} 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#20BE57] active:scale-95 transition-all"
+          >
+            <Radio className="w-3.5 h-3.5" /> Assign &amp; Dispatch
+          </button>
+        )}
+      </div>
+
   ))}
 </div>
 
