@@ -231,113 +231,25 @@ export function DispatchBoardContent() {
         </div>
       ) : (
         <div className="space-y-2.5">
-  {bookings.map((b) => (
-    <div key={b.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-3">
-      <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-50 shrink-0">
-        <Radio className="w-5 h-5 text-orange-600" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] text-gray-400">{b.ref_code}</span>
-          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${b.status === "assigned" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-            {b.status === "assigned" ? "Assigned" : "Needs Driver"}
-          </span>
+          {bookings.map((b) => (
+            <div key={b.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-50 shrink-0"><Radio className="w-5 h-5 text-orange-600" /></div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-gray-400">{b.ref_code}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${b.status === "assigned" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>{b.status === "assigned" ? "Assigned" : "Needs Driver"}</span>
+                </div>
+                <p className="text-sm font-semibold text-gray-900 truncate mt-0.5">{b.item_title}</p>
+                <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5"><span>{b.lead_name}</span><span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.booking_date}</span><span>{b.group_size} pax</span></div>
+              </div>
+              {b.status === "confirmed" && (
+                <button onClick={() => setDispatchBooking(b)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#20BE57] active:scale-95 transition-all shrink-0">
+                  <Radio className="w-3.5 h-3.5" /> Assign &amp; Dispatch
+                </button>
+              )}
+            </div>
+          ))}
         </div>
-        <p className="text-sm font-semibold text-gray-900 truncate mt-0.5">{b.item_title}</p>
-        <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5">
-          <span>{b.lead_name}</span>
-          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.booking_date}</span>
-          <span>{b.group_size} pax</span>
-        </div>
-      </div>
-      
-            {/* Full Admin & Dispatch Control Row */}
-      <div className="flex items-center gap-2 shrink-0 ml-auto">
-        {/* Edit Button */}
-        <button 
-          onClick={() => {
-            if (typeof setSelectedBookingForEdit === 'function') {
-              setSelectedBookingForEdit(b);
-            } else {
-              alert(`Editing Reservation: ${b.ref_code}`);
-            }
-          }}
-          className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors border border-gray-200"
-          title="Edit Reservation"
-        >
-          📝
-        </button>
-
-        {/* Delete Button */}
-        <button 
-          onClick={async () => {
-            if (window.confirm(`⚠️ Are you sure you want to permanently delete reservation ${b.ref_code}? This action cannot be undone.`)) {
-              try {
-                const { error } = await supabase
-                  .from('bookings')
-                  .delete()
-                  .eq('id', b.id);
-                  
-                if (error) throw error;
-                
-                if (typeof setBookings === 'function') {
-                  setBookings(bookings.filter(item => item.id !== b.id));
-                } else {
-                  window.location.reload();
-                }
-              } catch (err) {
-                console.error("Error deleting reservation record:", err);
-                alert("Could not process delete request.");
-              }
-            }
-          }}
-          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors border border-red-100"
-          title="Delete Reservation"
-        >
-          🗑️
-        </button>
-
-        <div className="w-[1px] h-5 bg-gray-200 mx-1" />
-
-        {/* Dispatch Toggle Engine */}
-        {b.status === "assigned" ? (
-          <button 
-            onClick={async () => {
-              try {
-                const { error } = await supabase
-                  .from('bookings')
-                  .update({ status: 'confirmed', driver_id: null })
-                  .eq('id', b.id);
-                  
-                if (error) throw error;
-                
-                b.status = "confirmed";
-                b.driver_id = null;
-                if (typeof setBookings === 'function') {
-                  setBookings([...bookings]);
-                }
-              } catch (err) {
-                console.error("Error updating route status:", err);
-                b.status = "confirmed";
-              }
-            }} 
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] font-bold border border-gray-200 active:scale-95 transition-all"
-          >
-            🔄 Change Driver
-          </button>
-        ) : (
-          <button 
-            onClick={() => setDispatchBooking(b)} 
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#20BE57] active:scale-95 transition-all"
-          >
-            <Radio className="w-3.5 h-3.5" /> Assign &amp; Dispatch
-          </button>
-        )}
-      </div>
-
-  ))}
-</div>
-
       )}
       <DriverDispatchModal booking={dispatchBooking} onClose={() => { setDispatchBooking(null); load(); }} onDispatched={() => {}} />
     </div>
